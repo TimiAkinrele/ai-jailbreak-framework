@@ -1,0 +1,40 @@
+# ------------------------
+# General Python ignores
+# ------------------------
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+*.so
+
+# ------------------------
+# Jupyter & VSCode artefacts
+# ------------------------
+.ipynb_checkpoints/
+.virtual_documents/
+.vscode/
+.anaconda_projects/
+*.swp
+
+# ------------------------
+# OS / environment noise
+# ------------------------
+.DS_Store
+Thumbs.db
+.env
+.venv/
+env/
+*.log
+
+# ------------------------
+# Data artefacts
+# ------------------------
+data/processed/*
+!data/processed/README.md   # keep a placeholder readme if you want
+
+# ------------------------
+# Notebook autosaves / tmp
+# ------------------------
+*.autosave.ipynb
