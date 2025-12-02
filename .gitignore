@@ -31,7 +31,6 @@ env/
 # ------------------------
 # Data artefacts
 # ------------------------
-data/processed/*
 !data/processed/README.md   # keep a placeholder readme if you want
 
 # ------------------------
