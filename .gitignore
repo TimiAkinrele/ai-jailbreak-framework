@@ -15,7 +15,7 @@ build/
 .ipynb_checkpoints/
 .virtual_documents/
 .vscode/
-.anaconda_projects/
+anaconda_projects/
 *.swp
 
 # ------------------------
@@ -38,3 +38,4 @@ data/processed/*
 # Notebook autosaves / tmp
 # ------------------------
 *.autosave.ipynb
+notebooks/.ipynb_checkpoints/*
