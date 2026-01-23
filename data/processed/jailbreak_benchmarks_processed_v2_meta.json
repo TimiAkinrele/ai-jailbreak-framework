@@ -1,0 +1,31 @@
+{
+  "version": "v2",
+  "description": "v2 preprocessing: cleaning, dedup, conflict removal, stratified ID splits. ID datasets: AdvBench + JailbreakBench + Deepset (benign). OOD test is balanced: HarmBench (harmful) + Alpaca Instructions (benign).",
+  "random_seed": 42,
+  "num_rows": 1647,
+  "splits": {
+    "ood_test": 768,
+    "train": 615,
+    "val": 132,
+    "test": 132
+  },
+  "id_datasets": [
+    "advbench",
+    "deepset_prompt_injections",
+    "jailbreakbench"
+  ],
+  "ood_harm_datasets": [
+    "harmbench"
+  ],
+  "ood_benign_datasets": [
+    "alpaca_instructions"
+  ],
+  "ood_dataset_counts": {
+    "harmbench": 384,
+    "alpaca_instructions": 384
+  },
+  "ood_label_counts": {
+    "1": 384,
+    "0": 384
+  }
+}

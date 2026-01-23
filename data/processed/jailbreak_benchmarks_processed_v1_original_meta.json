@@ -1,0 +1,18 @@
+{
+  "description": "Processed .. cleaning, dedup, conflict removal, ID/OOD grouping, stratified splits.",
+  "random_seed": 42,
+  "num_rows": 1093,
+  "splits": {
+    "train": 496,
+    "ood_test": 384,
+    "test": 107,
+    "val": 106
+  },
+  "id_datasets": [
+    "advbench",
+    "jailbreakbench"
+  ],
+  "ood_datasets": [
+    "harmbench"
+  ]
+}
