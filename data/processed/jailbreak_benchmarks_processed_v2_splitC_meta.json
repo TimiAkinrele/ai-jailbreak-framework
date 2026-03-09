@@ -1,0 +1,25 @@
+{
+  "version": "v2_splitC",
+  "description": "Repeatability split C: dataset composition fixed from v2. OOD membership fixed (both primary and injection OOD unchanged). Only ID train/val/test assignment re-sampled with stratification.",
+  "splitA_source": "jailbreak_benchmarks_processed_v2.csv",
+  "split_seed": 2029,
+  "num_rows": 6424,
+  "splits": {
+    "ood_test_injection_standard": 3986,
+    "ood_test": 768,
+    "train": 694,
+    "ood_test_injection": 678,
+    "test": 149,
+    "val": 149
+  },
+  "label_counts": {
+    "1": 3437,
+    "0": 2987
+  },
+  "ood_membership_unchanged": true,
+  "ood_fixed_splits": [
+    "ood_test",
+    "ood_test_injection",
+    "ood_test_injection_standard"
+  ]
+}

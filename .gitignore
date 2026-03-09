@@ -17,6 +17,9 @@ build/
 .vscode/
 anaconda_projects/
 *.swp
+data/processed/.ipynb_checkpoints/
+data/raw/.ipynb_checkpoints/
+**/.ipynb_checkpoints/
 
 # ------------------------
 # OS / environment noise
@@ -27,11 +30,25 @@ Thumbs.db
 .venv/
 env/
 *.log
+*.pytest_cache
+.pytest_cache/
+tests/__pycache__/
+src/__pycache__/
+**/__pycache__/
 
 # ------------------------
 # Data artefacts
 # ------------------------
 !data/processed/README.md   # keep a placeholder readme if you want
+experiments/results/archive/legacy_metrics/
+experiments/results/archive/compaction_*/
+experiments/results/metrics/no_ood_exhaustive_*_audit.csv
+experiments/results/audits/ibvs_component_audit_scored_full_*.csv
+experiments/results/audits/*_tmp*.csv
+experiments/results/metrics/metrics_*__ood-*.csv
+experiments/results/metrics/metrics_*_bins_split*.csv
+experiments/results/metrics/hybrid_gate_comparison_*.csv
+experiments/results/ibvs/ibvs_v2_activation_summary_split*.csv
 
 # ------------------------
 # Notebook autosaves / tmp

@@ -1,0 +1,4 @@
+model,split,acc,macro_f1,auc_pr,roc_auc,tpr_at_1pct_fpr,tpr_at_5pct_fpr,tpr_at_10pct_fpr,semantic_coverage,defer_rate,threshold_note,eval_track,ood_name
+SEM_LOGREG_BGE,VAL,0.9060402684563759,0.8763632053105737,0.9773531290822051,0.9477064220183486,0.3302752293577982,0.8532110091743119,0.8715596330275229,,,policy=macro_f1; t*=0.392; val_fpr=0.2250; score=semantic_proba,deployment_threshold,id
+SEM_LOGREG_BGE,TEST,0.8322147651006712,0.7880753257097344,0.9713014409491426,0.9232158988256548,0.6296296296296297,0.6574074074074074,0.8425925925925926,,,policy=macro_f1; t*=0.392; val_fpr=0.2250; score=semantic_proba,deployment_threshold,id
+SEM_LOGREG_BGE,OOD,0.7213541666666666,0.712057184904867,0.8289582573644597,0.8294474283854167,0.18229166666666666,0.3984375,0.5,,,policy=macro_f1; t*=0.392; val_fpr=0.2250; score=semantic_proba; ood_name=ood_test,deployment_threshold,ood_test

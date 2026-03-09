@@ -1,19 +1,28 @@
 {
   "version": "v2",
-  "description": "v2 preprocessing: cleaning, dedup, conflict removal, stratified ID splits. ID datasets: AdvBench + JailbreakBench + Deepset (benign). OOD test is balanced: HarmBench (harmful) + Alpaca Instructions (benign).",
+  "description": "v2 preprocessing: cleaning, dedup, conflict removal, stratified ID splits. ID datasets: AdvBench + JailbreakBench + Deepset (benign + ratio-capped harmful). Primary OOD is balanced HarmBench (harmful) + Alpaca Instructions (benign). Secondary OOD injection set (ood_test_injection) currently uses r1char9 prompt-injection attacks + NotInject benign hard negatives. Tertiary OOD injection_standard set (ood_test_injection_standard) uses local Qualifire jailbreak+benign.",
   "random_seed": 42,
-  "num_rows": 1647,
+  "num_rows": 6424,
   "splits": {
+    "ood_test_injection_standard": 3986,
     "ood_test": 768,
-    "train": 615,
-    "val": 132,
-    "test": 132
+    "train": 694,
+    "ood_test_injection": 678,
+    "test": 149,
+    "val": 149
   },
   "id_datasets": [
     "advbench",
     "deepset_prompt_injections",
     "jailbreakbench"
   ],
+  "id_max_harmful_ratio_target": 0.73,
+  "deepset_harmful_available": 118,
+  "deepset_harmful_included": 112,
+  "id_label_counts": {
+    "1": 721,
+    "0": 271
+  },
   "ood_harm_datasets": [
     "harmbench"
   ],
@@ -21,11 +30,54 @@
     "alpaca_instructions"
   ],
   "ood_dataset_counts": {
-    "harmbench": 384,
-    "alpaca_instructions": 384
+    "alpaca_instructions": 384,
+    "harmbench": 384
   },
   "ood_label_counts": {
-    "1": 384,
-    "0": 384
+    "0": 384,
+    "1": 384
+  },
+  "ood_injection_attack_datasets": [
+    "r1char9/prompt-2-prompt-injection-v2-dataset"
+  ],
+  "ood_injection_benign_datasets": [
+    "leolee99/NotInject"
+  ],
+  "ood_injection_counts": {
+    "notinject": 339,
+    "r1char9_prompt_injection_v2": 339
+  },
+  "ood_test_injection_label_counts": {
+    "0": 339,
+    "1": 339
+  },
+  "ood_injection_standard_attack_datasets": [
+    "qualifire/prompt-injections-benchmark (local)"
+  ],
+  "ood_injection_standard_benign_datasets": [
+    "qualifire/prompt-injections-benchmark (local)"
+  ],
+  "ood_injection_standard_counts": {
+    "qualifire_local": 3986
+  },
+  "ood_test_injection_standard_label_counts": {
+    "1": 1993,
+    "0": 1993
+  },
+  "ood_split_definitions": {
+    "ood_test": {
+      "harmful_source": "harmbench",
+      "benign_source": "alpaca_instructions"
+    },
+    "ood_test_injection": {
+      "attack_source": "r1char9/prompt-2-prompt-injection-v2-dataset",
+      "benign_source": "leolee99/NotInject",
+      "note": "This hard-negative injection split does NOT use Qualifire."
+    },
+    "ood_test_injection_standard": {
+      "attack_source": "qualifire/prompt-injections-benchmark (local)",
+      "benign_source": "qualifire/prompt-injections-benchmark (local)",
+      "note": "This is the Qualifire standard injection split."
+    }
   }
 }

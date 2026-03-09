@@ -1,0 +1,2 @@
+ood_set,n_total,n_alerts,explanation_coverage,suppression_only_rate,actionable_explanation_precision,avg_rules_per_alert,avg_positive_components_per_alert
+all,200,103,0.42718446601941745,0.1262135922330097,0.8409090909090909,0.7572815533980582,0.2815533980582524

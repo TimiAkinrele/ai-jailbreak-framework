@@ -1,0 +1,2 @@
+ood_set,n_total,n_alerts,tier1_alert_count,tier2_alert_count,tier0_alert_count,tier1_evidence_coverage,tier1_evidence_precision,score_only_rate,suppression_only_rate,suppression_applied_rate
+all,200,103,13,31,59,0.1262135922330097,0.7692307692307693,0.44660194174757284,0.1262135922330097,0.34951456310679613

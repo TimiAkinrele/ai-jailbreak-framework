@@ -1,0 +1,4 @@
+ood_set,n_total,n_alerts,tier1_alert_count,tier2_alert_count,tier0_alert_count,tier1_evidence_coverage,tier1_evidence_precision,score_only_rate,suppression_only_rate,suppression_applied_rate
+injection,66,40,3,17,20,0.075,0.0,0.275,0.225,0.525
+injection_standard,68,49,8,12,29,0.16326530612244897,1.0,0.5102040816326531,0.08163265306122448,0.30612244897959184
+primary,66,14,2,2,10,0.14285714285714285,1.0,0.7142857142857143,0.0,0.0
