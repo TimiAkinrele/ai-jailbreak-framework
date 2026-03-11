@@ -37,6 +37,8 @@ class NotebookConfigTests(unittest.TestCase):
         for nb_name in [
             "04_ablation_study.ipynb",
             "05_semantic_baseline.ipynb",
+            "07_transformer_baselines.ipynb",
+            "08_roberta_ibvs_hybrid.ipynb",
             "06_hybrid_routing.ipynb",
         ]:
             nb_path = REPO_ROOT / "notebooks" / nb_name
@@ -71,6 +73,16 @@ class NotebookConfigTests(unittest.TestCase):
 
     def test_hybrid_has_single_split_assignment(self):
         nb_path = REPO_ROOT / "notebooks" / "06_hybrid_routing.ipynb"
+        occurrences = _count_split_tag_assignments(nb_path)
+        self.assertEqual(occurrences, 1)
+
+    def test_transformer_has_single_split_assignment(self):
+        nb_path = REPO_ROOT / "notebooks" / "07_transformer_baselines.ipynb"
+        occurrences = _count_split_tag_assignments(nb_path)
+        self.assertEqual(occurrences, 1)
+
+    def test_transformer_hybrid_has_single_split_assignment(self):
+        nb_path = REPO_ROOT / "notebooks" / "08_roberta_ibvs_hybrid.ipynb"
         occurrences = _count_split_tag_assignments(nb_path)
         self.assertEqual(occurrences, 1)
 
@@ -132,10 +144,22 @@ class NotebookConfigTests(unittest.TestCase):
 
     def test_semantic_and_hybrid_emit_secondary_ood_suffix_outputs(self):
         nb_sem = REPO_ROOT / "notebooks" / "05_semantic_baseline.ipynb"
+        nb_tfm = REPO_ROOT / "notebooks" / "07_transformer_baselines.ipynb"
+        nb_tfm_hyb = REPO_ROOT / "notebooks" / "08_roberta_ibvs_hybrid.ipynb"
         nb_hyb = REPO_ROOT / "notebooks" / "06_hybrid_routing.ipynb"
         sem_code = "\n".join(
             "".join(c.get("source", []))
             for c in json.loads(nb_sem.read_text())["cells"]
+            if c.get("cell_type") == "code"
+        )
+        tfm_code = "\n".join(
+            "".join(c.get("source", []))
+            for c in json.loads(nb_tfm.read_text())["cells"]
+            if c.get("cell_type") == "code"
+        )
+        tfm_hyb_code = "\n".join(
+            "".join(c.get("source", []))
+            for c in json.loads(nb_tfm_hyb.read_text())["cells"]
             if c.get("cell_type") == "code"
         )
         hyb_code = "\n".join(
@@ -145,6 +169,10 @@ class NotebookConfigTests(unittest.TestCase):
         )
         self.assertIn("__ood-", sem_code)
         self.assertIn("__ood-{ood_name}", sem_code)
+        self.assertIn("__ood-", tfm_code)
+        self.assertIn("__ood-{ood_name}", tfm_code)
+        self.assertIn("__ood-", tfm_hyb_code)
+        self.assertIn("__ood-{ood_name}", tfm_hyb_code)
         self.assertIn("__ood-{ood_name}", hyb_code)
 
     def test_hybrid_model_family_consistent_across_splits(self):
@@ -233,6 +261,59 @@ class NotebookConfigTests(unittest.TestCase):
         for required_col in required_cols:
             self.assertIn(required_col, hybrid.columns)
             self.assertTrue(hybrid[required_col].notna().all())
+
+        transformer = df[df["experiment"] == "transformer"].copy()
+        if len(transformer) > 0:
+            transformer_required_cols = [
+                "backbone_name",
+                "max_length",
+                "learning_rate",
+                "num_epochs",
+                "train_batch_size",
+                "eval_batch_size",
+                "weight_decay",
+                "warmup_ratio",
+                "training_seed",
+                "device",
+            ]
+            missing_tfm_cols = [c for c in transformer_required_cols if c not in transformer.columns]
+            if missing_tfm_cols:
+                self.skipTest(
+                    "Repeatability table appears to predate transformer-baseline integration; "
+                    f"missing columns: {missing_tfm_cols}"
+                )
+            for required_col in transformer_required_cols:
+                self.assertIn(required_col, transformer.columns)
+                self.assertTrue(transformer[required_col].notna().all())
+
+        transformer_hybrid = df[df["experiment"] == "transformer_hybrid"].copy()
+        if len(transformer_hybrid) > 0:
+            transformer_hybrid_required_cols = [
+                "base_model",
+                "meta_model",
+                "hybrid_feature_mode",
+                "meta_C",
+                "stack_train_source",
+                "backbone_name",
+                "max_length",
+                "learning_rate",
+                "num_epochs",
+                "train_batch_size",
+                "eval_batch_size",
+                "weight_decay",
+                "warmup_ratio",
+                "training_seed",
+                "device",
+            ]
+            missing_tfm_hyb_cols = [c for c in transformer_hybrid_required_cols if c not in transformer_hybrid.columns]
+            if missing_tfm_hyb_cols:
+                self.skipTest(
+                    "Repeatability table appears to predate transformer-hybrid integration; "
+                    f"missing columns: {missing_tfm_hyb_cols}"
+                )
+            for required_col in transformer_hybrid_required_cols:
+                self.assertIn(required_col, transformer_hybrid.columns)
+                self.assertTrue(transformer_hybrid[required_col].notna().all())
 
         # Repeatability uncertainty summary columns should exist.
         repeat_cols = [

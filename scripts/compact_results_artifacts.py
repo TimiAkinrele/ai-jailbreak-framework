@@ -24,6 +24,19 @@ STAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 ARCHIVE = ARCHIVE_ROOT / f"compaction_{STAMP}"
 
 
+def _latest_named_files(search_roots: list[Path], pattern: str) -> list[Path]:
+    """Return the newest file for each basename across active + archived roots."""
+    latest_by_name: dict[str, Path] = {}
+    for root in search_roots:
+        if not root.exists():
+            continue
+        for path in root.rglob(pattern):
+            current = latest_by_name.get(path.name)
+            if current is None or path.stat().st_mtime > current.stat().st_mtime:
+                latest_by_name[path.name] = path
+    return sorted(latest_by_name.values(), key=lambda p: p.name)
+
+
 def _ensure_dirs() -> None:
     CANON.mkdir(parents=True, exist_ok=True)
     ARCHIVE.mkdir(parents=True, exist_ok=True)
@@ -38,14 +51,28 @@ def _parse_split_from_name(name: str, token: str = "split") -> str:
     return frag.split("_", 1)[0].split("__", 1)[0]
 
 
+def _parse_metric_family_from_name(name: str) -> str:
+    """Extract the metric family between `metrics_` and `_split`."""
+    stem = Path(name).stem
+    if not stem.startswith("metrics_") or "_split" not in stem:
+        return ""
+    return stem[len("metrics_"):].split("_split", 1)[0]
+
+
 def _build_canonical_metrics_ood() -> int:
-    files = sorted(METRICS.glob("metrics_*_split*__ood-*.csv"))
+    files = _latest_named_files([METRICS, ARCHIVE_ROOT], "metrics_*_split*__ood-*.csv")
     rows: list[pd.DataFrame] = []
     for p in files:
-        family = p.name.split("_", 2)[1]
+        family = _parse_metric_family_from_name(p.name)
+        if family.endswith("_bins") or family.endswith("_slice"):
+            continue
         split_tag = _parse_split_from_name(p.name)
         ood_name = p.name.split("__ood-", 1)[1].rsplit(".csv", 1)[0]
         df = pd.read_csv(p)
+        if "split" in df.columns:
+            df = df[df["split"].astype(str).eq("OOD")].copy()
+        if df.empty:
+            continue
         if "family" not in df.columns:
             df.insert(0, "family", family)
         else:
@@ -57,7 +84,7 @@ def _build_canonical_metrics_ood() -> int:
         if "ood_name" not in df.columns:
             df.insert(2, "ood_name", ood_name)
         else:
-            df["ood_name"] = ood_name
+            df["ood_name"] = df["ood_name"].fillna(ood_name)
         rows.append(df)
 
     if not rows:
@@ -70,9 +97,9 @@ def _build_canonical_metrics_ood() -> int:
 
 def _build_canonical_ibvs() -> dict[str, int]:
     outputs = {
-        "ibvs_activation_ood_all.csv": sorted(IBVS.glob("ibvs_v2_activation_summary_split*__ood-*.csv")),
-        "ibvs_fp_trigger_ood_all.csv": sorted(IBVS.glob("ibvs_v2_fp_trigger_summary_split*__ood-*.csv")),
-        "ibvs_fp_cases_ood_all.csv": sorted(IBVS.glob("ibvs_v2_fp_cases_split*__ood-*.csv")),
+        "ibvs_activation_ood_all.csv": _latest_named_files([IBVS, ARCHIVE_ROOT], "ibvs_v2_activation_summary_split*__ood-*.csv"),
+        "ibvs_fp_trigger_ood_all.csv": _latest_named_files([IBVS, ARCHIVE_ROOT], "ibvs_v2_fp_trigger_summary_split*__ood-*.csv"),
+        "ibvs_fp_cases_ood_all.csv": _latest_named_files([IBVS, ARCHIVE_ROOT], "ibvs_v2_fp_cases_split*__ood-*.csv"),
     }
     counts: dict[str, int] = {}
 

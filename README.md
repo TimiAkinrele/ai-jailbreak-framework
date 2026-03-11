@@ -13,6 +13,7 @@ This repository is organised around a reproducible experiment pipeline:
 3. Train and evaluate three model families:
    - ablation models based on TF-IDF, lexical flags, and IBVS
    - a semantic baseline using BGE embeddings and logistic regression
+   - supervised transformer baselines using fine-tuned RoBERTa and DeBERTa encoders
    - semantic-anchored hybrid routing/fusion variants
 4. Evaluate the models across repeated ID resamples (`Split A/B/C`) while keeping OOD sets fixed.
 5. Export canonical metrics, difficulty-slice analyses, and IBVS forensic artifacts for dissertation reporting.
@@ -63,6 +64,8 @@ These are the main files and directories that matter when reading the project on
   - trains and evaluates the semantic baseline (`BAAI/bge-small-en-v1.5` + logistic regression)
 - `notebooks/06_hybrid_routing.ipynb`
   - trains and evaluates hybrid routing/fusion models and rebuilds the consolidated comparison tables
+- `notebooks/07_transformer_baselines.ipynb`
+  - trains and evaluates fine-tuned transformer encoder baselines (`roberta-base`, `microsoft/deberta-base`)
 
 ## Data and Evaluation Protocol
 
@@ -131,8 +134,8 @@ If you already have a working notebook environment, the key libraries used by th
 The notebooks are designed to be **artifact-dependent, not session-dependent**:
 
 - notebook `02` must run first when rebuilding processed data
-- notebooks `04`, `05`, and `06` can then be run from fresh kernels as long as the required artifacts exist
-- notebook `06` also rebuilds cross-model comparison tables from the split-level outputs of `04` and `05`
+- notebooks `04`, `05`, `06`, and `07` can then be run from fresh kernels as long as the required artifacts exist
+- notebook `06` also rebuilds cross-model comparison tables from the split-level outputs of `04`, `05`, and `07`
 
 ### 1. Build / Refresh Processed Data
 
@@ -153,14 +156,17 @@ Canonical split-level runs:
 ```bash
 SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/04_ablation_study.ipynb
 SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/05_semantic_baseline.ipynb
+SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/07_transformer_baselines.ipynb
 SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/06_hybrid_routing.ipynb
 
 SPLIT_TAG=B jupyter nbconvert --to notebook --execute --inplace notebooks/04_ablation_study.ipynb
 SPLIT_TAG=B jupyter nbconvert --to notebook --execute --inplace notebooks/05_semantic_baseline.ipynb
+SPLIT_TAG=B jupyter nbconvert --to notebook --execute --inplace notebooks/07_transformer_baselines.ipynb
 SPLIT_TAG=B jupyter nbconvert --to notebook --execute --inplace notebooks/06_hybrid_routing.ipynb
 
 SPLIT_TAG=C jupyter nbconvert --to notebook --execute --inplace notebooks/04_ablation_study.ipynb
 SPLIT_TAG=C jupyter nbconvert --to notebook --execute --inplace notebooks/05_semantic_baseline.ipynb
+SPLIT_TAG=C jupyter nbconvert --to notebook --execute --inplace notebooks/07_transformer_baselines.ipynb
 SPLIT_TAG=C jupyter nbconvert --to notebook --execute --inplace notebooks/06_hybrid_routing.ipynb
 ```
 
@@ -173,6 +179,7 @@ Example:
 ```bash
 WRITE_MINIMAL_OUTPUTS=0 SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/04_ablation_study.ipynb
 WRITE_MINIMAL_OUTPUTS=0 SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/05_semantic_baseline.ipynb
+WRITE_MINIMAL_OUTPUTS=0 SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/07_transformer_baselines.ipynb
 WRITE_MINIMAL_OUTPUTS=0 SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/06_hybrid_routing.ipynb
 ```
 
@@ -212,6 +219,9 @@ The core result files produced by the experiment notebooks are:
 - `experiments/results/metrics/metrics_semantic_splitA.csv`
 - `experiments/results/metrics/metrics_semantic_splitB.csv`
 - `experiments/results/metrics/metrics_semantic_splitC.csv`
+- `experiments/results/metrics/metrics_transformer_splitA.csv`
+- `experiments/results/metrics/metrics_transformer_splitB.csv`
+- `experiments/results/metrics/metrics_transformer_splitC.csv`
 - `experiments/results/metrics/metrics_hybrid_splitA.csv`
 - `experiments/results/metrics/metrics_hybrid_splitB.csv`
 - `experiments/results/metrics/metrics_hybrid_splitC.csv`
@@ -294,6 +304,22 @@ These are specific to semantic-anchored hybrid models.
   - proportion of prompts routed away from the semantic decision path into fallback or fusion logic
 
 These quantities matter because a hybrid model is not just a classifier; it is also a routing policy.
+
+### Transformer Baseline Metadata
+The transformer family also records training metadata alongside the evaluation metrics, including:
+
+- `backbone_name`
+- `max_length`
+- `learning_rate`
+- `num_epochs`
+- `train_batch_size`
+- `eval_batch_size`
+- `weight_decay`
+- `warmup_ratio`
+- `training_seed`
+- `device`
+
+These fields are included so the fine-tuned encoder baselines remain reproducible and directly comparable across splits.
 
 ## Evaluation Tracks
 
