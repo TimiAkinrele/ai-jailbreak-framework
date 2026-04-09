@@ -1,6 +1,6 @@
 {
   "version": "v2",
-  "description": "v2 preprocessing: cleaning, dedup, conflict removal, stratified ID splits. ID datasets: AdvBench + JailbreakBench + Deepset (benign + ratio-capped harmful). Primary OOD is balanced HarmBench (harmful) + Alpaca Instructions (benign). Secondary OOD injection set (ood_test_injection) currently uses r1char9 prompt-injection attacks + NotInject benign hard negatives. Tertiary OOD injection_standard set (ood_test_injection_standard) uses local Qualifire jailbreak+benign.",
+  "description": "v2 preprocessing: cleaning, dedup, conflict removal, stratified ID splits. ID datasets: AdvBench + JailbreakBench + Deepset (benign + ratio-capped harmful). Primary OOD is balanced HarmBench (harmful) + Alpaca Instructions (benign). Secondary OOD injection set (ood_test_injection) intentionally uses r1char9 prompt-injection attacks + NotInject benign hard negatives as a hard-negative stress test. Tertiary OOD injection_standard set (ood_test_injection_standard) uses local Qualifire jailbreak+benign as the standard balanced injection benchmark.",
   "random_seed": 42,
   "num_rows": 6424,
   "splits": {
@@ -72,7 +72,7 @@
     "ood_test_injection": {
       "attack_source": "r1char9/prompt-2-prompt-injection-v2-dataset",
       "benign_source": "leolee99/NotInject",
-      "note": "This hard-negative injection split does NOT use Qualifire."
+      "note": "This hard-negative injection split intentionally uses r1char9 attacks + NotInject benign hard negatives."
     },
     "ood_test_injection_standard": {
       "attack_source": "qualifire/prompt-injections-benchmark (local)",

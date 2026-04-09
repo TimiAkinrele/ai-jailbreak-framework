@@ -40,6 +40,8 @@ src/__pycache__/
 # Data artefacts
 # ------------------------
 !data/processed/README.md   # keep a placeholder readme if you want
+data/processed/*.parquet
+data/processed/archive/
 experiments/results/archive/legacy_metrics/
 experiments/results/archive/compaction_*/
 experiments/results/metrics/no_ood_exhaustive_*_audit.csv

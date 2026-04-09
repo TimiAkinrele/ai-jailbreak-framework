@@ -19,7 +19,7 @@ except Exception as exc:  # pragma: no cover - import guard
 PREFERRED_SPLITS = ("train", "test", "validation")
 NOTINJECT_CONFIGS = ("NotInject_one", "NotInject_two", "NotInject_three")
 QUALIFIRE_DATASET_ID = "qualifire/prompt-injections-benchmark"
-QUALIFIRE_FALLBACK_DATASET_ID = "r1char9/prompt-2-prompt-injection-v2-dataset"
+R1CHAR9_DATASET_ID = "r1char9/prompt-2-prompt-injection-v2-dataset"
 DEFAULT_QUALIFIRE_LOCAL_CSV = (
     Path(__file__).resolve().parents[2] / "data" / "raw" / "qualifire-prompt-injections-benchmark.csv"
 )
@@ -210,95 +210,46 @@ def load_qualifire_standard(seed: int = 42, path: str | Path | None = None) -> p
     return out
 
 
-def load_qualifire_jailbreak_attacks(seed: int = 42) -> pd.DataFrame:
-    """Load Qualifire prompt-injection benchmark and keep only jailbreak rows.
+def load_r1char9_injection_attacks(seed: int = 42) -> pd.DataFrame:
+    """Load the fixed attack side for the hard-negative injection OOD benchmark.
 
-    The preferred source is `qualifire/prompt-injections-benchmark`. If it is
-    gated/unavailable without authentication, we transparently fall back to the
-    public `r1char9/prompt-2-prompt-injection-v2-dataset` dataset to preserve
-    a no-login pipeline and keep OOD-injection disjoint from ID sources.
+    The second OOD benchmark is intentionally defined as
+    `r1char9/prompt-2-prompt-injection-v2-dataset` (attacks) plus
+    `leolee99/NotInject` (benign hard negatives). This loader keeps that
+    definition explicit and stable across reruns.
     """
-    candidate_ids = [QUALIFIRE_DATASET_ID, QUALIFIRE_FALLBACK_DATASET_ID]
-    load_errors: list[str] = []
-    loaded: LoadedSplit | None = None
-    dataset_id: str | None = None
-
-    for candidate in candidate_ids:
-        try:
-            loaded = first_available_split(candidate)
-            dataset_id = candidate
-            break
-        except Exception as exc:
-            load_errors.append(f"{candidate}: {exc}")
-
-    if loaded is None or dataset_id is None:
-        raise RuntimeError(
-            "Unable to load any attack dataset for OOD injection set. "
-            f"Tried={candidate_ids}. Errors={' | '.join(load_errors[:3])}"
-        )
-
+    loaded = first_available_split(R1CHAR9_DATASET_ID)
     frame = loaded.frame.copy()
+    text_col = _first_existing_column(
+        frame.columns,
+        ["prompt_injection", "prompt", "text", "instruction", "input", "query"],
+        R1CHAR9_DATASET_ID,
+    )
 
-    if dataset_id == QUALIFIRE_FALLBACK_DATASET_ID:
-        text_col = _first_existing_column(
-            frame.columns,
-            ["prompt_injection", "prompt", "text", "instruction", "input", "query"],
-            dataset_id,
-        )
-        # This dataset is attack-only for our usage; treat all rows as label=1.
-        attack_mask = frame[text_col].astype(str).str.len() > 0
-    else:
-        text_col = _first_existing_column(
-            frame.columns,
-            ["text", "prompt", "instruction", "input", "query"],
-            dataset_id,
-        )
-        label_col = _first_existing_column(frame.columns, ["label", "labels"], dataset_id)
-
-        labels_raw = frame[label_col].astype(str).str.strip().str.lower()
-        mapped = labels_raw.map({"jailbreak": 1, "benign": 0})
-
-        # Fallback for integer-like labels.
-        if mapped.isna().all():
-            mapped = pd.to_numeric(frame[label_col], errors="coerce")
-
-        attack_mask = mapped == 1
-        if int(attack_mask.sum()) == 0:
-            raise ValueError(
-                "Qualifire loader found zero jailbreak rows. "
-                f"Unique raw labels: {sorted(set(labels_raw.dropna().tolist()))[:10]}"
-            )
-
-    attack_df = frame.loc[attack_mask].copy().reset_index(drop=True)
-    if dataset_id == QUALIFIRE_DATASET_ID:
-        source_name = "qualifire"
-        attack_family = "jailbreak"
-    elif dataset_id == QUALIFIRE_FALLBACK_DATASET_ID:
-        source_name = "r1char9_prompt_injection_v2"
-        attack_family = "jailbreak"
-    else:
-        source_name = "prompt_injection_attacks"
-        attack_family = "jailbreak"
-
+    attack_df = frame[frame[text_col].astype(str).str.len() > 0].copy().reset_index(drop=True)
     out = pd.DataFrame(
         {
             "prompt_text": attack_df[text_col].astype(str),
             "label": 1,
-            "dataset_name": source_name,
-            "attack_family": attack_family,
+            "dataset_name": "r1char9_prompt_injection_v2",
+            "attack_family": "jailbreak",
             "source_id": attack_df.index.astype(int),
             "hf_split_name": loaded.split_name,
-            "hf_dataset_id": dataset_id,
+            "hf_dataset_id": R1CHAR9_DATASET_ID,
             "hf_config_name": loaded.config_name,
-            # Requested convenience aliases.
-            "source": source_name,
-            "category": attack_family,
+            "source": "r1char9_prompt_injection_v2",
+            "category": "jailbreak",
             "text": attack_df[text_col].astype(str),
         }
     )
 
     out = out.sample(frac=1.0, random_state=seed).reset_index(drop=True)
     return out
+
+
+def load_qualifire_jailbreak_attacks(seed: int = 42) -> pd.DataFrame:
+    """Backward-compatible alias for the fixed hard-negative attack loader."""
+    return load_r1char9_injection_attacks(seed=seed)
 
 
 def _resolve_notinject_configs(dataset_id: str) -> list[str]:

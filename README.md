@@ -1,217 +1,188 @@
 # AI Jailbreak Classifier
 
-An experimental dissertation repository for prompt-injection and jailbreak detection in large language model inputs.
+This repository contains the dissertation experiment pipeline for jailbreak and prompt-injection detection in large language model prompts.
 
-The project studies whether an interpretable structural feature layer, the **Instruction Boundary Violation Score (IBVS)**, improves detection beyond purely lexical or purely semantic models, especially under out-of-distribution (OOD) evaluation and low-false-positive-rate operating points.
+The central methodological idea is to compare lexical, structural, semantic, transformer, and hybrid model families under a common in-distribution training setup and multiple held-out OOD regimes. The main structural contribution is the **Instruction Boundary Violation Score** (`IBVS`).
 
-## What This Repository Contains
+## Dissertation Research Questions
 
-This repository is organised around a reproducible experiment pipeline:
+The dissertation investigates the following research questions:
 
-1. Build a processed dataset from multiple raw jailbreak / benign prompt sources.
-2. Engineer lexical, semantic, and structural prompt features.
-3. Train and evaluate three model families:
-   - ablation models based on TF-IDF, lexical flags, and IBVS
-   - a semantic baseline using BGE embeddings and logistic regression
-   - supervised transformer baselines using fine-tuned RoBERTa and DeBERTa encoders
-   - semantic-anchored hybrid routing/fusion variants
-4. Evaluate the models across repeated ID resamples (`Split A/B/C`) while keeping OOD sets fixed.
-5. Export canonical metrics, difficulty-slice analyses, and IBVS forensic artifacts for dissertation reporting.
+1. To what extent can simple lexical signals detect jailbreak and prompt-injection attacks in LLM prompts?
+2. Does the proposed `IBVS` provide additional detection capability beyond lexical baselines?
+3. How do interpretable lexical and structural models compare with modern transformer encoder baselines for jailbreak detection?
+4. Can structural prompt-boundary signals provide useful complementary information when combined with strong neural encoders?
+5. How does the effectiveness of these approaches vary under differing OOD evaluation regimes?
 
-## Repository Layout
+## What Is In Scope
 
-These are the main files and directories that matter when reading the project on Git:
+The repository is organised around the dissertation workflow:
 
-- `README.md`
-  - project overview, execution order, and evaluation protocol
-- `requirements.txt`
-  - lightweight dependency file currently used in the repo
+1. Build the processed benchmark from tracked raw files plus the external OOD loaders.
+2. Run the model ladder notebooks.
+3. Export split-level metrics, consolidated tables, IBVS forensic outputs, and manual-audit outputs.
+
+This is a notebook-first research repository. The most important directories are:
+
 - `data/raw/`
-  - raw benchmark inputs used to build the processed dataset
 - `data/processed/`
-  - processed dataset artifacts used by the notebooks
 - `notebooks/`
-  - end-to-end experiment notebooks
 - `src/`
-  - reusable Python modules for IBVS, evaluation, data loading, and shared notebook helpers
-- `scripts/`
-  - small utilities for audit generation, compaction, and smoke validation
-- `tests/`
-  - regression tests for evaluation logic, IBVS behavior, and notebook output contracts
 - `experiments/results/`
-  - generated experiment outputs, metrics tables, IBVS breakdowns, and audit artifacts
 
-## Core Source Modules
+## Data Files
 
-- `src/features/ibvs.py`
-  - IBVS v2 feature computation, trigger extraction, suppression rules, and tripwire logic
-- `src/evaluation/eval_metrics.py`
-  - shared evaluation protocol, threshold selection, bootstrap helpers, and metrics table generation
-- `src/data/external_ood_loaders.py`
-  - helper loaders for secondary OOD datasets
-- `src/common/notebook_utils.py`
-  - shared notebook utilities such as lexical flags, text statistics, and semantic encoding helpers
+### Raw files tracked in the repository
 
-## Main Notebooks
+These are the local inputs used in preprocessing:
+
+- `data/raw/advbench-harmful_behaviors.csv`
+- `data/raw/alpaca_instructions.csv`
+- `data/raw/deepset_prompt_injections.csv`
+- `data/raw/harmbench_behaviors_text_all.csv`
+- `data/raw/jbb-benign-behaviors.csv`
+- `data/raw/jbb-harmful-behaviors.csv`
+- `data/raw/qualifire-prompt-injections-benchmark.csv`
+
+### External loader-backed OOD sources
+
+Two preprocessing inputs are not stored as local raw CSV files in `data/raw/`. They are loaded through the external OOD loader in `src/data/external_ood_loaders.py`:
+
+- `r1char9/prompt-2-prompt-injection-v2-dataset`
+  - attack side of `ood_test_injection`
+- `leolee99/NotInject`
+  - benign hard-negative side of `ood_test_injection`
+
+So the local raw files are not the entire preprocessing input set. The hard-negative injection OOD benchmark depends on these two external loader-backed sources as well as the tracked local files.
+
+### Processed benchmark files
+
+The tracked processed benchmark is:
+
+- `data/processed/jailbreak_benchmarks_processed_v2.csv`
+- `data/processed/jailbreak_benchmarks_processed_v2_meta.json`
+- `data/processed/jailbreak_benchmarks_processed_v2_splitB.csv`
+- `data/processed/jailbreak_benchmarks_processed_v2_splitB_meta.json`
+- `data/processed/jailbreak_benchmarks_processed_v2_splitC.csv`
+- `data/processed/jailbreak_benchmarks_processed_v2_splitC_meta.json`
+
+These files correspond to the methodology chapter’s processed benchmark and repeated `Split A`, `Split B`, and `Split C` setup.
+
+## Notebook Map
+
+These notebooks are the dissertation-facing workflow:
 
 - `notebooks/02_preprocessing.ipynb`
-  - builds the processed dataset and split metadata
+  - builds the processed benchmark and fixed OOD sets
 - `notebooks/03_feature_engineering.ipynb`
-  - exploratory feature development and sanity-check notebook
+  - exploratory feature inspection
 - `notebooks/04_ablation_study.ipynb`
-  - trains and evaluates the TF-IDF / lexical / IBVS ablation family
+  - TF-IDF, lexical flags, and `IBVS` ablation family
 - `notebooks/05_semantic_baseline.ipynb`
-  - trains and evaluates the semantic baseline (`BAAI/bge-small-en-v1.5` + logistic regression)
+  - `BAAI/bge-small-en-v1.5` semantic baseline with logistic regression
 - `notebooks/06_hybrid_routing.ipynb`
-  - trains and evaluates hybrid routing/fusion models and rebuilds the consolidated comparison tables
+  - semantic-centred hybrid routing and fusion variants
 - `notebooks/07_transformer_baselines.ipynb`
-  - trains and evaluates fine-tuned transformer encoder baselines (`roberta-base`, `microsoft/deberta-base`)
+  - RoBERTa-base and DeBERTa-base baselines
+- `notebooks/08_roberta_ibvs_hybrid.ipynb`
+  - RoBERTa + `IBVS` late-fusion experiment
 
-## Data and Evaluation Protocol
+## Source Modules
 
-### In-Distribution (ID)
-The in-distribution training pool is built from:
+The main reusable modules behind the notebooks are:
 
-- `AdvBench`
-- `JailbreakBench`
-- `Deepset prompt injections`
-  - benign rows are included directly
-  - harmful rows are ratio-capped so the harmful class does not overwhelm ID composition
+- `src/common/notebook_utils.py`
+- `src/data/external_ood_loaders.py`
+- `src/evaluation/eval_metrics.py`
+- `src/features/ibvs.py`
+- `src/models/transformer_baselines.py`
+- `src/models/transformer_ibvs_hybrid.py`
 
-### OOD Sets
-The OOD sets are **evaluation-only** and are kept fixed across `Split A/B/C`.
+These files hold the shared logic for preprocessing support, `IBVS`, evaluation, transformer baselines, and the RoBERTa + `IBVS` hybrid.
 
-- `ood_test`
-  - harmful: `HarmBench`
-  - benign: `Alpaca Instructions`
-  - purpose: primary generalisation benchmark for harmful-content-vs-benign behavior
+## How To Run
 
-- `ood_test_injection`
-  - harmful: `r1char9/prompt-2-prompt-injection-v2-dataset`
-  - benign: `leolee99/NotInject`
-  - purpose: hard-negative prompt-injection stress test
+### 1. Rebuild the processed benchmark
 
-- `ood_test_injection_standard`
-  - harmful + benign: local `qualifire-prompt-injections-benchmark.csv`
-  - purpose: balanced prompt-injection benchmark without NotInject-style hard-negative skew
-
-The split composition and counts are recorded in:
-
-- `data/processed/jailbreak_benchmarks_processed_v2_meta.json`
-
-Repeatability resamples are stored as:
-
-- `data/processed/jailbreak_benchmarks_processed_v2.csv` (`Split A`)
-- `data/processed/jailbreak_benchmarks_processed_v2_splitB.csv`
-- `data/processed/jailbreak_benchmarks_processed_v2_splitC.csv`
-
-## Setup
-
-This repository currently uses a research environment rather than a fully locked dependency spec. `requirements.txt` is not a complete environment file by itself.
-
-A practical minimum setup is:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -U pip
-pip install -r requirements.txt pandas numpy scipy scikit-learn xgboost sentence-transformers langdetect jupyter pytest
-```
-
-If you already have a working notebook environment, the key libraries used by the pipeline are:
-
-- `pandas`, `numpy`, `scipy`
-- `scikit-learn`
-- `xgboost`
-- `sentence-transformers`
-- `datasets`
-- `langdetect`
-- `jupyter`
-- `pytest`
-
-## Running the Pipeline
-
-The notebooks are designed to be **artifact-dependent, not session-dependent**:
-
-- notebook `02` must run first when rebuilding processed data
-- notebooks `04`, `05`, `06`, and `07` can then be run from fresh kernels as long as the required artifacts exist
-- notebook `06` also rebuilds cross-model comparison tables from the split-level outputs of `04`, `05`, and `07`
-
-### 1. Build / Refresh Processed Data
+Run preprocessing first if you want to rebuild the benchmark from raw inputs:
 
 ```bash
 jupyter nbconvert --to notebook --execute --inplace notebooks/02_preprocessing.ipynb
 ```
 
-### 2. Optional Exploratory Feature Notebook
+This step uses:
 
-```bash
-jupyter nbconvert --to notebook --execute --inplace notebooks/03_feature_engineering.ipynb
-```
+- the tracked local raw files under `data/raw/`
+- the local Qualifire file
+- the external loader-backed `r1char9` and `NotInject` datasets
 
-### 3. Run Split-Level Experiments
+### 2. Run the main experiment notebooks
 
-Canonical split-level runs:
+The main dissertation experiment path is:
 
 ```bash
 SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/04_ablation_study.ipynb
 SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/05_semantic_baseline.ipynb
-SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/07_transformer_baselines.ipynb
 SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/06_hybrid_routing.ipynb
+SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/07_transformer_baselines.ipynb
 
 SPLIT_TAG=B jupyter nbconvert --to notebook --execute --inplace notebooks/04_ablation_study.ipynb
 SPLIT_TAG=B jupyter nbconvert --to notebook --execute --inplace notebooks/05_semantic_baseline.ipynb
-SPLIT_TAG=B jupyter nbconvert --to notebook --execute --inplace notebooks/07_transformer_baselines.ipynb
 SPLIT_TAG=B jupyter nbconvert --to notebook --execute --inplace notebooks/06_hybrid_routing.ipynb
+SPLIT_TAG=B jupyter nbconvert --to notebook --execute --inplace notebooks/07_transformer_baselines.ipynb
 
 SPLIT_TAG=C jupyter nbconvert --to notebook --execute --inplace notebooks/04_ablation_study.ipynb
 SPLIT_TAG=C jupyter nbconvert --to notebook --execute --inplace notebooks/05_semantic_baseline.ipynb
-SPLIT_TAG=C jupyter nbconvert --to notebook --execute --inplace notebooks/07_transformer_baselines.ipynb
 SPLIT_TAG=C jupyter nbconvert --to notebook --execute --inplace notebooks/06_hybrid_routing.ipynb
+SPLIT_TAG=C jupyter nbconvert --to notebook --execute --inplace notebooks/07_transformer_baselines.ipynb
 ```
 
-### 4. Full Diagnostics Mode
+These notebooks write the split-level result files used throughout the dissertation.
 
-By default, the experiment notebooks write the minimal canonical outputs. To regenerate the extra per-OOD and bin-level diagnostics, run with `WRITE_MINIMAL_OUTPUTS=0`.
+### 3. Run the transformer-hybrid extension
+
+Run this only if you want the RoBERTa + `IBVS` late-fusion comparison:
+
+```bash
+SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/08_roberta_ibvs_hybrid.ipynb
+SPLIT_TAG=B jupyter nbconvert --to notebook --execute --inplace notebooks/08_roberta_ibvs_hybrid.ipynb
+SPLIT_TAG=C jupyter nbconvert --to notebook --execute --inplace notebooks/08_roberta_ibvs_hybrid.ipynb
+```
+
+### 4. Optional full diagnostics mode
+
+The notebooks default to minimal active outputs. If you want the extra OOD-suffixed and bin-level diagnostics, set `WRITE_MINIMAL_OUTPUTS=0`.
 
 Example:
 
 ```bash
 WRITE_MINIMAL_OUTPUTS=0 SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/04_ablation_study.ipynb
-WRITE_MINIMAL_OUTPUTS=0 SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/05_semantic_baseline.ipynb
-WRITE_MINIMAL_OUTPUTS=0 SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/07_transformer_baselines.ipynb
-WRITE_MINIMAL_OUTPUTS=0 SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/06_hybrid_routing.ipynb
 ```
 
-### 5. Optional Utility Scripts
+## Dissertation File Map
 
-- Compact secondary outputs into canonical aggregate tables:
+### Methodology and dataset design
 
-```bash
-python scripts/compact_results_artifacts.py
-```
+The methodology chapter maps most directly to:
 
-- Build the manual IBVS audit sample:
+- `data/processed/jailbreak_benchmarks_processed_v2_meta.json`
+- `notebooks/02_preprocessing.ipynb`
+- `src/data/external_ood_loaders.py`
+- `src/features/ibvs.py`
+- `src/evaluation/eval_metrics.py`
 
-```bash
-python scripts/build_ibvs_audit_sample.py
-```
+### Main evaluation chapter
 
-- Run the IBVS component and tiered-evidence audit:
+The main evaluation chapter maps most directly to:
 
-```bash
-python scripts/run_ibvs_component_audit.py
-```
+- `experiments/results/metrics/results_table_v2_repeatability.csv`
+- `experiments/results/metrics/results_table_difficulty_bins.csv`
+- `experiments/results/canonical/results_ood_all_models.csv`
+- `experiments/results/canonical/ibvs_activation_ood_all.csv`
+- `experiments/results/canonical/ibvs_fp_cases_ood_all.csv`
+- `experiments/results/canonical/ibvs_fp_trigger_ood_all.csv`
 
-- Smoke-check OOD evaluation wiring:
-
-```bash
-python scripts/smoke_eval_ood_sets.py
-```
-
-## Canonical Outputs
-
-The core result files produced by the experiment notebooks are:
+Split-level support files are:
 
 - `experiments/results/metrics/metrics_ablation_splitA.csv`
 - `experiments/results/metrics/metrics_ablation_splitB.csv`
@@ -225,14 +196,20 @@ The core result files produced by the experiment notebooks are:
 - `experiments/results/metrics/metrics_hybrid_splitA.csv`
 - `experiments/results/metrics/metrics_hybrid_splitB.csv`
 - `experiments/results/metrics/metrics_hybrid_splitC.csv`
-- `experiments/results/metrics/results_table_v2_repeatability.csv`
-- `experiments/results/metrics/results_table_difficulty_bins.csv`
+- `experiments/results/metrics/metrics_transformer_hybrid_splitA.csv`
+- `experiments/results/metrics/metrics_transformer_hybrid_splitB.csv`
+- `experiments/results/metrics/metrics_transformer_hybrid_splitC.csv`
 
-Supporting IBVS forensic outputs include:
+### IBVS forensics and false-positive review
+
+The `IBVS` review sections map to:
 
 - `experiments/results/ibvs/ibvs_v2_breakdown_splitA.csv`
 - `experiments/results/ibvs/ibvs_v2_breakdown_splitB.csv`
 - `experiments/results/ibvs/ibvs_v2_breakdown_splitC.csv`
+- `experiments/results/ibvs/ibvs_v2_activation_summary_splitA.csv`
+- `experiments/results/ibvs/ibvs_v2_activation_summary_splitB.csv`
+- `experiments/results/ibvs/ibvs_v2_activation_summary_splitC.csv`
 - `experiments/results/ibvs/ibvs_v2_fp_cases_splitA.csv`
 - `experiments/results/ibvs/ibvs_v2_fp_cases_splitB.csv`
 - `experiments/results/ibvs/ibvs_v2_fp_cases_splitC.csv`
@@ -240,125 +217,20 @@ Supporting IBVS forensic outputs include:
 - `experiments/results/ibvs/ibvs_v2_fp_trigger_summary_splitB.csv`
 - `experiments/results/ibvs/ibvs_v2_fp_trigger_summary_splitC.csv`
 
-Compacted cross-OOD aggregate tables include:
+### Appendix diagnostics
 
-- `experiments/results/canonical/results_ood_all_models.csv`
-- `experiments/results/canonical/ibvs_activation_ood_all.csv`
-- `experiments/results/canonical/ibvs_fp_cases_ood_all.csv`
-- `experiments/results/canonical/ibvs_fp_trigger_ood_all.csv`
+The appendix material maps to:
 
-Audit artifacts include:
-
-- `experiments/results/audits/ibvs_audit_summary.md`
+- `experiments/results/metrics/results_table_difficulty_bins.csv`
+- `experiments/results/audits/ibvs_component_audit_sample_splitA.csv`
 - `experiments/results/audits/ibvs_component_precision_metrics.csv`
-- `experiments/results/audits/ibvs_tier_metrics_overall.csv`
-- `experiments/results/audits/ibvs_tier_metrics_by_ood.csv`
 - `experiments/results/audits/ibvs_triage_utility_overall.csv`
 - `experiments/results/audits/ibvs_triage_utility_by_ood.csv`
 - `experiments/results/audits/ibvs_triage_examples.csv`
-
-## Evaluation Metrics
-
-The project uses a security-oriented evaluation protocol rather than relying on a single scalar score.
-
-### Ranking Metrics
-These measure score quality without committing to a single deployment threshold.
-
-- `ROC-AUC`
-  - threshold-free ranking quality across the full operating range
-  - useful for comparing how well models separate harmful from benign prompts overall
-
-- `AUC-PR`
-  - area under the precision-recall curve
-  - more informative than ROC-AUC when the positive class is relatively sparse or when precision matters
-
-- `TPR@1% FPR`, `TPR@5% FPR`, `TPR@10% FPR`
-  - true positive rate measured at fixed false positive rate operating points
-  - directly relevant to machine learning security, where low-FPR behavior is often more important than average accuracy
-
-### Thresholded / Deployment Metrics
-These measure what happens after selecting a specific operating threshold on validation data.
-
-- `Accuracy`
-  - overall classification correctness
-  - easy to read, but less informative than low-FPR metrics in safety settings
-
-- `Macro-F1`
-  - the unweighted mean of class-wise F1 scores
-  - useful when both harmful and benign performance matter and class imbalance exists
-
-- threshold metadata
-  - validation threshold value
-  - threshold selection mode
-  - achieved validation FPR at the selected threshold
-  - whether the target FPR constraint was satisfied
-  - number of feasible thresholds under the low-FPR constraint
-
-### Hybrid Routing Metrics
-These are specific to semantic-anchored hybrid models.
-
-- `semantic_coverage`
-  - proportion of prompts decided directly by the semantic model
-
-- `defer_rate`
-  - proportion of prompts routed away from the semantic decision path into fallback or fusion logic
-
-These quantities matter because a hybrid model is not just a classifier; it is also a routing policy.
-
-### Transformer Baseline Metadata
-The transformer family also records training metadata alongside the evaluation metrics, including:
-
-- `backbone_name`
-- `max_length`
-- `learning_rate`
-- `num_epochs`
-- `train_batch_size`
-- `eval_batch_size`
-- `weight_decay`
-- `warmup_ratio`
-- `training_seed`
-- `device`
-
-These fields are included so the fine-tuned encoder baselines remain reproducible and directly comparable across splits.
-
-## Evaluation Tracks
-
-The repository distinguishes two complementary evaluation tracks:
-
-- `ranking`
-  - threshold-free claims about score quality and low-FPR operating-point behavior
-- `deployment_threshold`
-  - thresholded operational behavior after selecting the decision threshold on `VAL`
-
-This separation is important in machine learning security research because a model can rank prompts well while still performing poorly at a specific deployment threshold, or vice versa.
-
-## Reproducibility and Validity Rules
-
-The current protocol enforces the following:
-
-1. Thresholds are selected on `VAL`, then frozen for `TEST` and OOD evaluation.
-2. OOD sets are never used for training or threshold tuning.
-3. Repeatability is evaluated by changing only the ID train/val/test split (`A/B/C`) while keeping OOD rows fixed.
-4. Notebook output contracts are regression-tested to reduce accidental schema drift.
-5. Shared evaluation logic is centralised in `src/evaluation/eval_metrics.py` so metric definitions stay consistent across notebooks.
-
-## Tests
-
-Run the main regression suite with:
-
-```bash
-PYTHONPATH=. pytest -q tests/test_common_notebook_utils.py tests/test_eval_metrics.py tests/test_ibvs.py tests/test_notebook_configs.py
-```
-
-These tests cover:
-
-- threshold selector behavior and evaluation invariants
-- IBVS v2 feature activations and suppressor behavior
-- shared notebook helper utilities
-- notebook configuration and output-contract consistency
+- `experiments/results/audits/ibvs_audit_summary.md`
 
 ## Notes
 
-- The repository is notebook-driven by design, but the critical logic is moved into `src/` where possible to reduce duplication.
-- If you need a quick script overview, see `scripts/README.md`.
-- For dissertation use, the safest tables to cite first are the split-level metrics in `experiments/results/metrics/` and the consolidated tables in `experiments/results/canonical/`.
+- The canonical loader for external OOD data is `src/data/external_ood_loaders.py`.
+- The active ablation path now reflects the dissertation ladder: `TF-IDF`, `TF-IDF + flags`, `IBVS v1 Total`, `IBVS v2 Total`, and `IBVS v2 Structured`.
+- The README files in `scripts/` and `experiments/results/canonical/` describe only the dissertation-facing utilities and result tables.
