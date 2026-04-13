@@ -102,7 +102,79 @@ These files hold the shared logic for preprocessing support, `IBVS`, evaluation,
 
 ## How To Run
 
-### 1. Rebuild the processed benchmark
+### 1. Prerequisites
+
+Use this repository from its own root directory:
+
+```bash
+cd ai-jailbreak-classifier
+```
+
+You will need:
+
+- Python `3.10+`
+- `pip`
+- enough disk space for downloaded models and datasets
+- internet access on first run for Hugging Face model and dataset downloads
+
+The notebooks and scripts assume you run commands from the repository root.
+
+### 2. Create a virtual environment
+
+macOS / Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+Windows PowerShell:
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+This installs the core packages used across the repository, including `jupyter`, `datasets`, `sentence-transformers`, `transformers`, `torch`, `xgboost`, and the evaluation stack.
+
+### 3. Verify the environment
+
+Optional but recommended:
+
+```bash
+pytest
+```
+
+### 4. Decide how you want to execute notebooks
+
+Interactive notebook session:
+
+```bash
+jupyter notebook
+```
+
+Headless execution from the terminal:
+
+```bash
+jupyter nbconvert --to notebook --execute --inplace notebooks/02_preprocessing.ipynb
+```
+
+### 5. Understand what can be reused vs rebuilt
+
+The repository already includes the dissertation-facing processed data and result files. If you only need the final outputs cited in the dissertation, you do not have to rerun everything.
+
+Re-run notebooks only if you want to regenerate:
+
+- processed benchmark files in `data/processed/`
+- split-level result files in `experiments/results/metrics/`
+- `IBVS` forensic outputs in `experiments/results/ibvs/`
+- optional audit and canonical aggregation outputs
+
+### 6. Rebuild the processed benchmark
 
 Run preprocessing first if you want to rebuild the benchmark from raw inputs:
 
@@ -113,35 +185,50 @@ jupyter nbconvert --to notebook --execute --inplace notebooks/02_preprocessing.i
 This step uses:
 
 - the tracked local raw files under `data/raw/`
-- the local Qualifire file
-- the external loader-backed `r1char9` and `NotInject` datasets
+- the external loader-backed `r1char9/prompt-2-prompt-injection-v2-dataset`
+- the external loader-backed `leolee99/NotInject`
 
-### 2. Run the main experiment notebooks
+If a Hugging Face source is gated in your environment, set `HF_TOKEN` or `HUGGINGFACE_HUB_TOKEN` before running.
 
-The main dissertation experiment path is:
+### 7. Notebook execution order
+
+The notebook workflow is:
+
+- `notebooks/02_preprocessing.ipynb`
+  - builds the processed benchmark and OOD sets
+- `notebooks/03_feature_engineering.ipynb`
+  - exploratory feature analysis only; not required for the final dissertation tables
+- `notebooks/04_ablation_study.ipynb`
+  - lexical and `IBVS` ablations
+- `notebooks/05_semantic_baseline.ipynb`
+  - embedding baseline using `BAAI/bge-small-en-v1.5`
+- `notebooks/06_hybrid_routing.ipynb`
+  - semantic plus `IBVS` hybrid experiments
+- `notebooks/07_transformer_baselines.ipynb`
+  - transformer baselines such as `roberta-base`
+- `notebooks/08_roberta_ibvs_hybrid.ipynb`
+  - optional RoBERTa plus `IBVS` late-fusion extension
+
+### 8. Run the main dissertation experiments
+
+Always set `SPLIT_TAG` explicitly to `A`, `B`, or `C`.
+
+Example for one split:
 
 ```bash
 SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/04_ablation_study.ipynb
 SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/05_semantic_baseline.ipynb
 SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/06_hybrid_routing.ipynb
 SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/07_transformer_baselines.ipynb
-
-SPLIT_TAG=B jupyter nbconvert --to notebook --execute --inplace notebooks/04_ablation_study.ipynb
-SPLIT_TAG=B jupyter nbconvert --to notebook --execute --inplace notebooks/05_semantic_baseline.ipynb
-SPLIT_TAG=B jupyter nbconvert --to notebook --execute --inplace notebooks/06_hybrid_routing.ipynb
-SPLIT_TAG=B jupyter nbconvert --to notebook --execute --inplace notebooks/07_transformer_baselines.ipynb
-
-SPLIT_TAG=C jupyter nbconvert --to notebook --execute --inplace notebooks/04_ablation_study.ipynb
-SPLIT_TAG=C jupyter nbconvert --to notebook --execute --inplace notebooks/05_semantic_baseline.ipynb
-SPLIT_TAG=C jupyter nbconvert --to notebook --execute --inplace notebooks/06_hybrid_routing.ipynb
-SPLIT_TAG=C jupyter nbconvert --to notebook --execute --inplace notebooks/07_transformer_baselines.ipynb
 ```
+
+Repeat the same four commands for `SPLIT_TAG=B` and `SPLIT_TAG=C`.
 
 These notebooks write the split-level result files used throughout the dissertation.
 
-### 3. Run the transformer-hybrid extension
+### 9. Run the transformer-hybrid extension
 
-Run this only if you want the RoBERTa + `IBVS` late-fusion comparison:
+Run this only if you want the RoBERTa plus `IBVS` late-fusion comparison:
 
 ```bash
 SPLIT_TAG=A jupyter nbconvert --to notebook --execute --inplace notebooks/08_roberta_ibvs_hybrid.ipynb
@@ -149,7 +236,7 @@ SPLIT_TAG=B jupyter nbconvert --to notebook --execute --inplace notebooks/08_rob
 SPLIT_TAG=C jupyter nbconvert --to notebook --execute --inplace notebooks/08_roberta_ibvs_hybrid.ipynb
 ```
 
-### 4. Optional full diagnostics mode
+### 10. Optional full diagnostics mode
 
 The notebooks default to minimal active outputs. If you want the extra OOD-suffixed and bin-level diagnostics, set `WRITE_MINIMAL_OUTPUTS=0`.
 
