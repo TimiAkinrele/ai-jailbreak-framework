@@ -110,6 +110,12 @@ Use this repository from its own root directory:
 cd ai-jailbreak-classifier
 ```
 
+This experiment was run using:
+
+- macOS `26.3.1` on Apple Silicon
+- Apple MacBook Pro with an `Apple M1 Pro` chip and `16 GB` memory
+- roughly `40 minutes` for a full notebook rerun on this machine once dependencies and model/data caches are in place
+
 You will need:
 
 - Python `3.10+`
