@@ -107,7 +107,7 @@ These files hold the shared logic for preprocessing support, `IBVS`, evaluation,
 Use this repository from its own root directory:
 
 ```bash
-cd ai-jailbreak-classifier
+cd ai-jailbreak-framework
 ```
 
 This experiment was run using:
