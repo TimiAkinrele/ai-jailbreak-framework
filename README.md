@@ -1,4 +1,4 @@
-# AI Jailbreak Classifier
+# AI Jailbreak Comparative Framework
 
 This repository contains the dissertation experiment pipeline for jailbreak and prompt-injection detection in large language model prompts.
 
